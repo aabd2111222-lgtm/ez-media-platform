@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>EZ MEDIA | منصة الإعلام الرقمي</title>
+  <title>EZ MEDIA 11.0 | منصة الإعلام الرقمي</title>
 
   <meta
     name="description"
-    content="EZ MEDIA منصة إعلامية رقمية متكاملة للمحتوى والإعلام والبث والصوتيات والفعاليات والخدمات الرقمية."
+    content="EZ MEDIA 11.0 منصة إعلامية رقمية متكاملة للمحتوى والإعلام والفيديو والصوت والبث المباشر والفعاليات والخدمات والهوية الرقمية."
   >
 
   <meta name="theme-color" content="#eef9ff">
@@ -22,16 +22,21 @@
 
     :root {
       --white: #ffffff;
-      --ice: #f5fcff;
-      --sky: #dff5ff;
-      --sky2: #bdeaff;
+      --ice: #f7fcff;
+      --sky: #e7f8ff;
+      --sky2: #c9efff;
       --blue: #159bd7;
       --blue2: #087bb7;
+      --blue3: #39b9ee;
       --text: #163247;
       --muted: #61798a;
       --border: #dceff7;
       --shadow: 0 15px 45px rgba(37, 142, 190, .12);
       --radius: 24px;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -71,6 +76,10 @@
       font: inherit;
     }
 
+    button {
+      cursor: pointer;
+    }
+
     /* =========================
        HEADER
     ========================= */
@@ -82,7 +91,7 @@
 
       backdrop-filter: blur(20px);
 
-      background: rgba(255,255,255,.88);
+      background: rgba(255,255,255,.90);
 
       border-bottom:
         1px solid rgba(160,220,245,.45);
@@ -159,8 +168,6 @@
 
       border-radius: 14px;
 
-      cursor: pointer;
-
       color: var(--text);
 
       transition: .2s;
@@ -215,6 +222,22 @@
       border: 1px solid rgba(150,220,245,.5);
     }
 
+    .hero-card::before {
+      content: "";
+
+      position: absolute;
+
+      width: 260px;
+      height: 260px;
+
+      right: -80px;
+      bottom: -100px;
+
+      border-radius: 50%;
+
+      background: rgba(255,255,255,.45);
+    }
+
     .hero-card::after {
       content: "";
 
@@ -245,7 +268,7 @@
 
       border-radius: 999px;
 
-      background: rgba(255,255,255,.8);
+      background: rgba(255,255,255,.85);
 
       color: var(--blue2);
 
@@ -281,12 +304,19 @@
       gap: 12px;
     }
 
-    .primary {
-      border: 0;
-
+    .primary,
+    .secondary {
       padding: 13px 23px;
 
       border-radius: 15px;
+
+      font-weight: 800;
+
+      transition: .2s;
+    }
+
+    .primary {
+      border: 0;
 
       background:
         linear-gradient(
@@ -297,32 +327,25 @@
 
       color: white;
 
-      font-weight: 800;
-
-      cursor: pointer;
-
       box-shadow:
         0 12px 25px rgba(8,123,183,.22);
+    }
+
+    .primary:hover,
+    .secondary:hover {
+      transform: translateY(-2px);
     }
 
     .secondary {
       border: 1px solid #b9e4f5;
 
-      padding: 13px 23px;
-
-      border-radius: 15px;
-
-      background: rgba(255,255,255,.8);
+      background: rgba(255,255,255,.85);
 
       color: var(--blue2);
-
-      font-weight: 800;
-
-      cursor: pointer;
     }
 
     /* =========================
-       SECTION
+       MAIN
     ========================= */
 
     main {
@@ -394,8 +417,25 @@
       transition: .25s;
     }
 
+    .banner::after {
+      content: "";
+
+      position: absolute;
+
+      width: 130px;
+      height: 130px;
+
+      left: -45px;
+      bottom: -65px;
+
+      border-radius: 50%;
+
+      background: rgba(126,219,255,.20);
+    }
+
     .banner:hover {
       transform: translateY(-5px);
+      border-color: #a8ddf3;
     }
 
     .banner-number {
@@ -452,7 +492,7 @@
     }
 
     .content-card {
-      background: rgba(255,255,255,.9);
+      background: rgba(255,255,255,.92);
 
       border: 1px solid var(--border);
 
@@ -462,6 +502,12 @@
 
       box-shadow:
         0 8px 25px rgba(37,142,190,.07);
+
+      transition: .2s;
+    }
+
+    .content-card:hover {
+      transform: translateY(-3px);
     }
 
     .content-icon {
@@ -482,6 +528,7 @@
 
     .content-card h3 {
       margin-bottom: 6px;
+      font-size: 18px;
     }
 
     .content-card p {
@@ -491,15 +538,33 @@
     }
 
     /* =========================
-       LOADING
+       STATES
     ========================= */
 
     .loading {
+      grid-column: 1 / -1;
+
       text-align: center;
 
       padding: 35px;
 
       color: var(--muted);
+    }
+
+    .error-box {
+      grid-column: 1 / -1;
+
+      padding: 25px;
+
+      border-radius: 20px;
+
+      background: #fff;
+
+      border: 1px solid var(--border);
+
+      color: var(--muted);
+
+      text-align: center;
     }
 
     /* =========================
@@ -627,7 +692,8 @@
 
       <button
         class="nav-btn"
-        onclick="window.location='/admin.html'"
+        type="button"
+        onclick="window.location.href='/admin.html'"
       >
         الإدارة
       </button>
@@ -665,6 +731,7 @@
 
         <button
           class="primary"
+          type="button"
           onclick="document
             .getElementById('sections')
             .scrollIntoView({behavior:'smooth'})"
@@ -674,7 +741,8 @@
 
         <button
           class="secondary"
-          onclick="window.location='/admin.html'"
+          type="button"
+          onclick="window.location.href='/admin.html'"
         >
           لوحة الإدارة
         </button>
@@ -785,7 +853,18 @@ async function loadSections() {
   try {
 
     const response =
-      await fetch('/api/sections');
+      await fetch('/api/sections', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+    }
 
     const data =
       await response.json();
@@ -794,11 +873,20 @@ async function loadSections() {
       !data.success ||
       !Array.isArray(data.sections)
     ) {
-
       throw new Error(
-        'Unable to load sections'
+        'Invalid sections response'
       );
+    }
 
+    if (!data.sections.length) {
+
+      container.innerHTML = `
+        <div class="loading">
+          لا توجد أقسام متاحة حاليًا.
+        </div>
+      `;
+
+      return;
     }
 
     container.innerHTML =
@@ -807,7 +895,9 @@ async function loadSections() {
 
           <a
             class="banner"
-            href="/section.html?slug=${encodeURIComponent(section.slug)}"
+            href="/section.html?slug=${encodeURIComponent(
+              section.slug
+            )}"
           >
 
             <div class="banner-number">
@@ -836,11 +926,14 @@ async function loadSections() {
 
   } catch(error) {
 
-    console.error(error);
+    console.error(
+      'Sections error:',
+      error
+    );
 
     container.innerHTML = `
-      <div class="loading">
-        تعذر تحميل الأقسام.
+      <div class="error-box">
+        تعذر تحميل أقسام المنصة حاليًا.
       </div>
     `;
   }
@@ -855,7 +948,18 @@ async function loadContent() {
   try {
 
     const response =
-      await fetch('/api/content');
+      await fetch('/api/content', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+    }
 
     const data =
       await response.json();
@@ -864,11 +968,9 @@ async function loadContent() {
       !data.success ||
       !Array.isArray(data.contents)
     ) {
-
       throw new Error(
-        'Unable to load content'
+        'Invalid content response'
       );
-
     }
 
     if (!data.contents.length) {
@@ -891,11 +993,15 @@ async function loadContent() {
             <article class="content-card">
 
               <div class="content-icon">
-                ${getIcon(item.content_type)}
+                ${getIcon(
+                  item.content_type
+                )}
               </div>
 
               <h3>
-                ${escapeHtml(item.title)}
+                ${escapeHtml(
+                  item.title
+                )}
               </h3>
 
               <p>
@@ -911,11 +1017,14 @@ async function loadContent() {
 
   } catch(error) {
 
-    console.error(error);
+    console.error(
+      'Content error:',
+      error
+    );
 
     container.innerHTML = `
-      <div class="loading">
-        تعذر تحميل المحتوى.
+      <div class="error-box">
+        تعذر تحميل المحتوى حاليًا.
       </div>
     `;
   }
@@ -931,7 +1040,10 @@ function getIcon(type) {
     audio: '🎧',
     podcast: '🎙️',
     live: '🔴',
-    gallery: '📸'
+    gallery: '📸',
+    news: '📰',
+    report: '📊',
+    interview: '🎤'
 
   };
 
