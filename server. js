@@ -1,0 +1,1337 @@
+'use strict';
+
+const express = require('express');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { Pool } = require('pg');
+const { v4: uuid } = require('uuid');
+
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET =
+  process.env.JWT_SECRET || 'CHANGE_THIS_SECRET_IN_RAILWAY';
+
+const DATABASE_URL = process.env.DATABASE_URL;
+
+/* =========================================================
+   DATABASE
+========================================================= */
+
+let pool = null;
+
+if (DATABASE_URL) {
+  pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: DATABASE_URL.includes('localhost')
+      ? false
+      : { rejectUnauthorized: false }
+  });
+}
+
+/* =========================================================
+   APP CONFIG
+========================================================= */
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+);
+
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+app.use(morgan('combined'));
+
+const uploadsDir = path.join(__dirname, 'uploads');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use('/uploads', express.static(uploadsDir));
+app.use(express.static(path.join(__dirname, 'public')));
+
+/* =========================================================
+   MULTER
+========================================================= */
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${uuid()}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024
+  }
+});
+
+/* =========================================================
+   30 MAIN SECTIONS
+========================================================= */
+
+const DEFAULT_SECTIONS = [
+  ['الأخبار', 'news'],
+  ['الإعلام', 'media'],
+  ['المحتوى', 'content'],
+  ['الفيديو', 'video'],
+  ['الصوتيات', 'audio'],
+  ['البودكاست', 'podcast'],
+  ['البث المباشر', 'live'],
+  ['التغطيات', 'coverage'],
+  ['الفعاليات', 'events'],
+  ['التقارير', 'reports'],
+  ['المقابلات', 'interviews'],
+  ['التقنية', 'technology'],
+  ['الذكاء الاصطناعي', 'ai'],
+  ['المنصات الرقمية', 'digital-platforms'],
+  ['السوشيال ميديا', 'social-media'],
+  ['الترند', 'trending'],
+  ['السفر', 'travel'],
+  ['السياحة', 'tourism'],
+  ['الرياضة', 'sports'],
+  ['الاقتصاد', 'economy'],
+  ['الأعمال', 'business'],
+  ['الإعلانات', 'advertising'],
+  ['الرعايات', 'sponsorships'],
+  ['التجارة', 'commerce'],
+  ['الخدمات', 'services'],
+  ['الهوية الرقمية', 'digital-identity'],
+  ['صانع المحتوى', 'creator'],
+  ['فريق EZ MEDIA', 'team'],
+  ['المكتبة الرقمية', 'library'],
+  ['عن EZ MEDIA', 'about']
+];
+
+/* =========================================================
+   DATABASE INITIALIZATION
+========================================================= */
+
+async function initDatabase() {
+  if (!pool) {
+    console.log('DATABASE_URL is not configured.');
+    return false;
+  }
+
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'editor',
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS sections (
+        id UUID PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT UNIQUE NOT NULL,
+        description TEXT DEFAULT '',
+        banner_title TEXT DEFAULT '',
+        banner_text TEXT DEFAULT '',
+        banner_image TEXT DEFAULT '',
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS contents (
+        id UUID PRIMARY KEY,
+        section_id UUID REFERENCES sections(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        slug TEXT UNIQUE NOT NULL,
+        excerpt TEXT DEFAULT '',
+        body TEXT DEFAULT '',
+        cover_image TEXT DEFAULT '',
+        content_type TEXT NOT NULL DEFAULT 'article',
+        status TEXT NOT NULL DEFAULT 'draft',
+        author_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        published_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS banners (
+        id UUID PRIMARY KEY,
+        section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        subtitle TEXT DEFAULT '',
+        image_url TEXT DEFAULT '',
+        button_text TEXT DEFAULT '',
+        button_url TEXT DEFAULT '',
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS schedules (
+        id UUID PRIMARY KEY,
+        content_id UUID REFERENCES contents(id) ON DELETE CASCADE,
+        scheduled_at TIMESTAMPTZ NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS automation_runs (
+        id UUID PRIMARY KEY,
+        type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        message TEXT DEFAULT '',
+        started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        finished_at TIMESTAMPTZ
+      );
+
+      CREATE TABLE IF NOT EXISTS media (
+        id UUID PRIMARY KEY,
+        filename TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        size BIGINT NOT NULL DEFAULT 0,
+        url TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL DEFAULT '',
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await seedSections();
+    await seedAdmin();
+
+    console.log('PostgreSQL initialized successfully.');
+
+    return true;
+  } catch (error) {
+    console.error('DATABASE INITIALIZATION ERROR:', error);
+    return false;
+  }
+}
+
+/* =========================================================
+   SEED SECTIONS
+========================================================= */
+
+async function seedSections() {
+  for (let i = 0; i < DEFAULT_SECTIONS.length; i++) {
+    const [name, slug] = DEFAULT_SECTIONS[i];
+
+    await pool.query(
+      `
+      INSERT INTO sections
+      (id, name, slug, sort_order)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (slug) DO NOTHING
+      `,
+      [uuid(), name, slug, i + 1]
+    );
+  }
+}
+
+/* =========================================================
+   SEED ADMIN
+========================================================= */
+
+async function seedAdmin() {
+  const email =
+    process.env.ADMIN_EMAIL || 'admin@ezmedia.local';
+
+  const password =
+    process.env.ADMIN_PASSWORD || 'ChangeMe123!';
+
+  const existing = await pool.query(
+    `SELECT id FROM users WHERE email = $1`,
+    [email]
+  );
+
+  if (existing.rowCount > 0) {
+    return;
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+
+  await pool.query(
+    `
+    INSERT INTO users
+    (id, email, password_hash, name, role)
+    VALUES ($1, $2, $3, $4, $5)
+    `,
+    [
+      uuid(),
+      email,
+      hash,
+      'EZ MEDIA Administrator',
+      'admin'
+    ]
+  );
+
+  console.log(`Admin account created: ${email}`);
+}
+
+/* =========================================================
+   AUTHENTICATION
+========================================================= */
+
+function createToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name
+    },
+    JWT_SECRET,
+    {
+      expiresIn: '7d'
+    }
+  );
+}
+
+function auth(req, res, next) {
+  const header = req.headers.authorization;
+
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+
+  const token = header.substring(7);
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token'
+    });
+  }
+}
+
+function adminOnly(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Administrator access required'
+    });
+  }
+
+  next();
+}
+
+/* =========================================================
+   HEALTH
+========================================================= */
+
+app.get('/health', async (req, res) => {
+  let database = 'not_configured';
+
+  if (pool) {
+    try {
+      await pool.query('SELECT 1');
+      database = 'connected';
+    } catch {
+      database = 'error';
+    }
+  }
+
+  res.json({
+    success: true,
+    platform: 'EZ MEDIA',
+    version: '11.0.0',
+    status: 'online',
+    database,
+    time: new Date().toISOString()
+  });
+});
+
+/* =========================================================
+   SYSTEM
+========================================================= */
+
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    platform: 'EZ MEDIA',
+    version: '11.0.0',
+    api: 'online'
+  });
+});
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database is not configured'
+      });
+    }
+
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM users
+      WHERE email = $1
+      AND active = TRUE
+      `,
+      [email]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    const user = result.rows[0];
+
+    const valid = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+    if (!valid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    const token = createToken(user);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Login failed'
+    });
+  }
+});
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+app.get('/api/sections', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM sections
+      WHERE active = TRUE
+      ORDER BY sort_order ASC
+    `);
+
+    res.json({
+      success: true,
+      sections: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Unable to load sections'
+    });
+  }
+});
+
+app.get('/api/sections/:slug', async (req, res) => {
+  try {
+    const sectionResult = await pool.query(
+      `
+      SELECT *
+      FROM sections
+      WHERE slug = $1
+      AND active = TRUE
+      `,
+      [req.params.slug]
+    );
+
+    if (sectionResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Section not found'
+      });
+    }
+
+    const section = sectionResult.rows[0];
+
+    const contentResult = await pool.query(
+      `
+      SELECT
+        c.id,
+        c.title,
+        c.slug,
+        c.excerpt,
+        c.cover_image,
+        c.content_type,
+        c.published_at
+      FROM contents c
+      WHERE c.section_id = $1
+      AND c.status = 'published'
+      ORDER BY c.published_at DESC NULLS LAST
+      `,
+      [section.id]
+    );
+
+    res.json({
+      success: true,
+      section,
+      contents: contentResult.rows
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: 'Unable to load section'
+    });
+  }
+});
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+app.get('/api/content', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        c.*,
+        s.name AS section_name,
+        s.slug AS section_slug
+      FROM contents c
+      LEFT JOIN sections s
+      ON s.id = c.section_id
+      WHERE c.status = 'published'
+      ORDER BY c.published_at DESC NULLS LAST
+    `);
+
+    res.json({
+      success: true,
+      contents: result.rows
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: 'Unable to load content'
+    });
+  }
+});
+
+app.get('/api/content/:slug', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        c.*,
+        s.name AS section_name,
+        s.slug AS section_slug
+      FROM contents c
+      LEFT JOIN sections s
+      ON s.id = c.section_id
+      WHERE c.slug = $1
+      `,
+      [req.params.slug]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Content not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      content: result.rows[0]
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: 'Unable to load content'
+    });
+  }
+});
+
+/* =========================================================
+   ADMIN STATS
+========================================================= */
+
+app.get(
+  '/api/admin/stats',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const [
+        sections,
+        contents,
+        published,
+        drafts,
+        banners,
+        media,
+        schedules
+      ] = await Promise.all([
+        pool.query(`SELECT COUNT(*) FROM sections`),
+        pool.query(`SELECT COUNT(*) FROM contents`),
+        pool.query(`
+          SELECT COUNT(*)
+          FROM contents
+          WHERE status = 'published'
+        `),
+        pool.query(`
+          SELECT COUNT(*)
+          FROM contents
+          WHERE status = 'draft'
+        `),
+        pool.query(`SELECT COUNT(*) FROM banners`),
+        pool.query(`SELECT COUNT(*) FROM media`),
+        pool.query(`
+          SELECT COUNT(*)
+          FROM schedules
+          WHERE status = 'pending'
+        `)
+      ]);
+
+      res.json({
+        success: true,
+        stats: {
+          sections: Number(sections.rows[0].count),
+          contents: Number(contents.rows[0].count),
+          published: Number(published.rows[0].count),
+          drafts: Number(drafts.rows[0].count),
+          banners: Number(banners.rows[0].count),
+          media: Number(media.rows[0].count),
+          scheduled: Number(schedules.rows[0].count)
+        }
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to load statistics'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   ADMIN CONTENT CREATE
+========================================================= */
+
+app.post(
+  '/api/admin/content',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const {
+        section_id,
+        title,
+        slug,
+        excerpt = '',
+        body = '',
+        cover_image = '',
+        content_type = 'article',
+        status = 'draft',
+        published_at = null
+      } = req.body;
+
+      if (!title || !slug) {
+        return res.status(400).json({
+          success: false,
+          message: 'Title and slug are required'
+        });
+      }
+
+      const id = uuid();
+
+      const result = await pool.query(
+        `
+        INSERT INTO contents
+        (
+          id,
+          section_id,
+          title,
+          slug,
+          excerpt,
+          body,
+          cover_image,
+          content_type,
+          status,
+          author_id,
+          published_at
+        )
+        VALUES
+        ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        RETURNING *
+        `,
+        [
+          id,
+          section_id || null,
+          title,
+          slug,
+          excerpt,
+          body,
+          cover_image,
+          content_type,
+          status,
+          req.user.id,
+          status === 'published'
+            ? published_at || new Date()
+            : null
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        content: result.rows[0]
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: 'Unable to create content'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   ADMIN CONTENT UPDATE
+========================================================= */
+
+app.put(
+  '/api/admin/content/:id',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const {
+        title,
+        slug,
+        excerpt,
+        body,
+        cover_image,
+        section_id,
+        content_type,
+        status
+      } = req.body;
+
+      const result = await pool.query(
+        `
+        UPDATE contents
+        SET
+          title = COALESCE($1,title),
+          slug = COALESCE($2,slug),
+          excerpt = COALESCE($3,excerpt),
+          body = COALESCE($4,body),
+          cover_image = COALESCE($5,cover_image),
+          section_id = COALESCE($6,section_id),
+          content_type = COALESCE($7,content_type),
+          status = COALESCE($8,status),
+          updated_at = NOW(),
+          published_at =
+            CASE
+              WHEN $8 = 'published'
+              THEN COALESCE(published_at,NOW())
+              ELSE published_at
+            END
+        WHERE id = $9
+        RETURNING *
+        `,
+        [
+          title,
+          slug,
+          excerpt,
+          body,
+          cover_image,
+          section_id,
+          content_type,
+          status,
+          req.params.id
+        ]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Content not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        content: result.rows[0]
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to update content'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   ADMIN CONTENT DELETE
+========================================================= */
+
+app.delete(
+  '/api/admin/content/:id',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `
+        DELETE FROM contents
+        WHERE id = $1
+        RETURNING id
+        `,
+        [req.params.id]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Content not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        deleted: result.rows[0].id
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to delete content'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   BANNERS
+========================================================= */
+
+app.get('/api/banners', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        b.*,
+        s.name AS section_name,
+        s.slug AS section_slug
+      FROM banners b
+      LEFT JOIN sections s
+      ON s.id = b.section_id
+      WHERE b.active = TRUE
+      ORDER BY b.sort_order ASC, b.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      banners: result.rows
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: 'Unable to load banners'
+    });
+  }
+});
+
+app.post(
+  '/api/admin/banners',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const {
+        section_id,
+        title,
+        subtitle = '',
+        image_url = '',
+        button_text = '',
+        button_url = '',
+        sort_order = 0
+      } = req.body;
+
+      if (!title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Banner title is required'
+        });
+      }
+
+      const result = await pool.query(
+        `
+        INSERT INTO banners
+        (
+          id,
+          section_id,
+          title,
+          subtitle,
+          image_url,
+          button_text,
+          button_url,
+          sort_order
+        )
+        VALUES
+        ($1,$2,$3,$4,$5,$6,$7,$8)
+        RETURNING *
+        `,
+        [
+          uuid(),
+          section_id || null,
+          title,
+          subtitle,
+          image_url,
+          button_text,
+          button_url,
+          sort_order
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        banner: result.rows[0]
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to create banner'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   MEDIA UPLOAD
+========================================================= */
+
+app.post(
+  '/api/admin/media',
+  auth,
+  adminOnly,
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+      }
+
+      const url = `/uploads/${req.file.filename}`;
+
+      const result = await pool.query(
+        `
+        INSERT INTO media
+        (
+          id,
+          filename,
+          original_name,
+          mime_type,
+          size,
+          url
+        )
+        VALUES
+        ($1,$2,$3,$4,$5,$6)
+        RETURNING *
+        `,
+        [
+          uuid(),
+          req.file.filename,
+          req.file.originalname,
+          req.file.mimetype,
+          req.file.size,
+          url
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        media: result.rows[0]
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: 'Upload failed'
+      });
+    }
+  }
+);
+
+app.get(
+  '/api/admin/media',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT *
+        FROM media
+        ORDER BY created_at DESC
+      `);
+
+      res.json({
+        success: true,
+        media: result.rows
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to load media'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+app.get('/api/settings', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT key,value
+      FROM settings
+      ORDER BY key
+    `);
+
+    const settings = {};
+
+    for (const row of result.rows) {
+      settings[row.key] = row.value;
+    }
+
+    res.json({
+      success: true,
+      settings
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: 'Unable to load settings'
+    });
+  }
+});
+
+app.put(
+  '/api/admin/settings/:key',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const value =
+        typeof req.body.value === 'string'
+          ? req.body.value
+          : JSON.stringify(req.body.value);
+
+      const result = await pool.query(
+        `
+        INSERT INTO settings
+        (key,value,updated_at)
+        VALUES ($1,$2,NOW())
+        ON CONFLICT (key)
+        DO UPDATE SET
+          value = EXCLUDED.value,
+          updated_at = NOW()
+        RETURNING *
+        `,
+        [req.params.key, value]
+      );
+
+      res.json({
+        success: true,
+        setting: result.rows[0]
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to update setting'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   SCHEDULE CONTENT
+========================================================= */
+
+app.post(
+  '/api/admin/schedules',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { content_id, scheduled_at } = req.body;
+
+      if (!content_id || !scheduled_at) {
+        return res.status(400).json({
+          success: false,
+          message: 'content_id and scheduled_at are required'
+        });
+      }
+
+      const result = await pool.query(
+        `
+        INSERT INTO schedules
+        (id,content_id,scheduled_at)
+        VALUES ($1,$2,$3)
+        RETURNING *
+        `,
+        [
+          uuid(),
+          content_id,
+          scheduled_at
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        schedule: result.rows[0]
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to schedule content'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   AUTOMATION ENGINE
+========================================================= */
+
+async function runAutomation() {
+  if (!pool) return;
+
+  const runId = uuid();
+
+  try {
+    await pool.query(
+      `
+      INSERT INTO automation_runs
+      (id,type,status,message)
+      VALUES ($1,$2,$3,$4)
+      `,
+      [
+        runId,
+        'scheduled-publishing',
+        'running',
+        'Automation started'
+      ]
+    );
+
+    const schedules = await pool.query(`
+      SELECT *
+      FROM schedules
+      WHERE status = 'pending'
+      AND scheduled_at <= NOW()
+      ORDER BY scheduled_at ASC
+      LIMIT 50
+    `);
+
+    for (const schedule of schedules.rows) {
+      await pool.query(
+        `
+        UPDATE contents
+        SET
+          status = 'published',
+          published_at = COALESCE(published_at,NOW()),
+          updated_at = NOW()
+        WHERE id = $1
+        `,
+        [schedule.content_id]
+      );
+
+      await pool.query(
+        `
+        UPDATE schedules
+        SET status = 'completed'
+        WHERE id = $1
+        `,
+        [schedule.id]
+      );
+    }
+
+    await pool.query(
+      `
+      UPDATE automation_runs
+      SET
+        status = 'completed',
+        message = $1,
+        finished_at = NOW()
+      WHERE id = $2
+      `,
+      [
+        `Published ${schedules.rowCount} scheduled item(s)`,
+        runId
+      ]
+    );
+  } catch (error) {
+    console.error('AUTOMATION ERROR:', error);
+
+    await pool.query(
+      `
+      UPDATE automation_runs
+      SET
+        status = 'failed',
+        message = $1,
+        finished_at = NOW()
+      WHERE id = $2
+      `,
+      [
+        error.message,
+        runId
+      ]
+    ).catch(() => {});
+  }
+}
+
+/* =========================================================
+   AUTOMATION API
+========================================================= */
+
+app.post(
+  '/api/admin/automation/run',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    await runAutomation();
+
+    res.json({
+      success: true,
+      message: 'Automation executed'
+    });
+  }
+);
+
+/* =========================================================
+   ADMIN AUTOMATION HISTORY
+========================================================= */
+
+app.get(
+  '/api/admin/automation/runs',
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT *
+        FROM automation_runs
+        ORDER BY started_at DESC
+        LIMIT 100
+      `);
+
+      res.json({
+        success: true,
+        runs: result.rows
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to load automation history'
+      });
+    }
+  }
+);
+
+/* =========================================================
+   404 API
+========================================================= */
+
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'API endpoint not found'
+  });
+});
+
+/* =========================================================
+   FRONTEND FALLBACK
+========================================================= */
+
+app.get('*', (req, res) => {
+  res.sendFile(
+    path.join(__dirname, 'public', 'index.html')
+  );
+});
+
+/* =========================================================
+   START SERVER
+========================================================= */
+
+async function start() {
+  await initDatabase();
+
+  setInterval(() => {
+    runAutomation().catch(console.error);
+  }, 60 * 1000);
+
+  app.listen(PORT, () => {
+    console.log('');
+    console.log('======================================');
+    console.log('        EZ MEDIA 11.0');
+    console.log('======================================');
+    console.log(`Server: http://localhost:${PORT}`);
+    console.log(`Database: ${DATABASE_URL ? 'configured' : 'not configured'}`);
+    console.log('Automation: enabled');
+    console.log('======================================');
+    console.log('');
+  });
+}
+
+start().catch((error) => {
+  console.error('FATAL STARTUP ERROR:', error);
+  process.exit(1);
+});
