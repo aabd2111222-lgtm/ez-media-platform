@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>EZ MEDIA | منصة الإعلام الرقمي</title>
+
+  <meta
+    name="description"
+    content="EZ MEDIA منصة إعلامية رقمية متكاملة للمحتوى والإعلام والبث والصوتيات والفعاليات والخدمات الرقمية."
+  >
+
+  <meta name="theme-color" content="#eef9ff">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --white: #ffffff;
+      --ice: #f5fcff;
+      --sky: #dff5ff;
+      --sky2: #bdeaff;
+      --blue: #159bd7;
+      --blue2: #087bb7;
+      --text: #163247;
+      --muted: #61798a;
+      --border: #dceff7;
+      --shadow: 0 15px 45px rgba(37, 142, 190, .12);
+      --radius: 24px;
+    }
+
+    body {
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Tahoma,
+        Arial,
+        sans-serif;
+
+      background:
+        radial-gradient(
+          circle at 10% 10%,
+          rgba(170, 230, 255, .45),
+          transparent 35%
+        ),
+        linear-gradient(
+          135deg,
+          #ffffff 0%,
+          #f5fcff 45%,
+          #e7f8ff 100%
+        );
+
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+
+      backdrop-filter: blur(20px);
+
+      background: rgba(255,255,255,.88);
+
+      border-bottom:
+        1px solid rgba(160,220,245,.45);
+    }
+
+    .nav {
+      max-width: 1450px;
+      margin: auto;
+
+      padding: 15px 22px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+
+      border-radius: 16px;
+
+      display: grid;
+      place-items: center;
+
+      color: white;
+      font-size: 19px;
+      font-weight: 900;
+
+      background:
+        linear-gradient(
+          145deg,
+          #7edbff,
+          #159bd7,
+          #087bb7
+        );
+
+      box-shadow:
+        0 10px 25px rgba(21,155,215,.25);
+    }
+
+    .brand-text strong {
+      display: block;
+      font-size: 21px;
+      letter-spacing: .5px;
+    }
+
+    .brand-text span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      border: 1px solid var(--border);
+
+      background: white;
+
+      padding: 9px 15px;
+
+      border-radius: 14px;
+
+      cursor: pointer;
+
+      color: var(--text);
+
+      transition: .2s;
+    }
+
+    .nav-btn:hover {
+      border-color: var(--blue);
+      transform: translateY(-1px);
+    }
+
+    /* =========================
+       HERO
+    ========================= */
+
+    .hero {
+      max-width: 1450px;
+
+      margin: 28px auto 0;
+
+      padding: 0 22px;
+    }
+
+    .hero-card {
+      min-height: 440px;
+
+      position: relative;
+
+      overflow: hidden;
+
+      border-radius: 34px;
+
+      padding: 60px;
+
+      display: flex;
+      align-items: center;
+
+      background:
+        radial-gradient(
+          circle at 85% 20%,
+          rgba(126,219,255,.8),
+          transparent 28%
+        ),
+        linear-gradient(
+          135deg,
+          #ffffff,
+          #e5f8ff 55%,
+          #c9efff
+        );
+
+      box-shadow: var(--shadow);
+
+      border: 1px solid rgba(150,220,245,.5);
+    }
+
+    .hero-card::after {
+      content: "";
+
+      position: absolute;
+
+      width: 350px;
+      height: 350px;
+
+      left: -80px;
+      bottom: -150px;
+
+      border-radius: 50%;
+
+      background: rgba(255,255,255,.55);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+
+      padding: 7px 14px;
+
+      border-radius: 999px;
+
+      background: rgba(255,255,255,.8);
+
+      color: var(--blue2);
+
+      font-size: 13px;
+      font-weight: 800;
+
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(38px, 6vw, 76px);
+
+      line-height: 1.05;
+
+      letter-spacing: -2px;
+
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 19px;
+
+      color: #4f6878;
+
+      max-width: 700px;
+
+      margin-bottom: 28px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .primary {
+      border: 0;
+
+      padding: 13px 23px;
+
+      border-radius: 15px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #39b9ee,
+          #087bb7
+        );
+
+      color: white;
+
+      font-weight: 800;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 12px 25px rgba(8,123,183,.22);
+    }
+
+    .secondary {
+      border: 1px solid #b9e4f5;
+
+      padding: 13px 23px;
+
+      border-radius: 15px;
+
+      background: rgba(255,255,255,.8);
+
+      color: var(--blue2);
+
+      font-weight: 800;
+
+      cursor: pointer;
+    }
+
+    /* =========================
+       SECTION
+    ========================= */
+
+    main {
+      max-width: 1450px;
+
+      margin: auto;
+
+      padding: 35px 22px 80px;
+    }
+
+    .section-heading {
+      display: flex;
+
+      justify-content: space-between;
+
+      align-items: end;
+
+      gap: 20px;
+
+      margin-bottom: 20px;
+    }
+
+    .section-heading h2 {
+      font-size: 30px;
+    }
+
+    .section-heading p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* =========================
+       SMART BANNERS
+    ========================= */
+
+    .banners {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, 1fr);
+
+      gap: 18px;
+
+      margin-bottom: 50px;
+    }
+
+    .banner {
+      min-height: 210px;
+
+      position: relative;
+
+      overflow: hidden;
+
+      border-radius: var(--radius);
+
+      padding: 25px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ffffff,
+          #dff6ff
+        );
+
+      border: 1px solid var(--border);
+
+      box-shadow: var(--shadow);
+
+      transition: .25s;
+    }
+
+    .banner:hover {
+      transform: translateY(-5px);
+    }
+
+    .banner-number {
+      width: 42px;
+      height: 42px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 13px;
+
+      background: #e7f8ff;
+
+      color: var(--blue2);
+
+      font-weight: 900;
+
+      margin-bottom: 22px;
+    }
+
+    .banner h3 {
+      font-size: 21px;
+
+      margin-bottom: 8px;
+    }
+
+    .banner p {
+      color: var(--muted);
+
+      font-size: 14px;
+
+      margin-bottom: 18px;
+    }
+
+    .banner-link {
+      color: var(--blue2);
+
+      font-weight: 800;
+
+      font-size: 13px;
+    }
+
+    /* =========================
+       CONTENT
+    ========================= */
+
+    .content-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(4, 1fr);
+
+      gap: 16px;
+    }
+
+    .content-card {
+      background: rgba(255,255,255,.9);
+
+      border: 1px solid var(--border);
+
+      border-radius: 20px;
+
+      padding: 20px;
+
+      box-shadow:
+        0 8px 25px rgba(37,142,190,.07);
+    }
+
+    .content-icon {
+      width: 45px;
+      height: 45px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 14px;
+
+      background: #e6f8ff;
+
+      margin-bottom: 15px;
+
+      font-size: 20px;
+    }
+
+    .content-card h3 {
+      margin-bottom: 6px;
+    }
+
+    .content-card p {
+      color: var(--muted);
+
+      font-size: 13px;
+    }
+
+    /* =========================
+       LOADING
+    ========================= */
+
+    .loading {
+      text-align: center;
+
+      padding: 35px;
+
+      color: var(--muted);
+    }
+
+    /* =========================
+       FOOTER
+    ========================= */
+
+    footer {
+      border-top: 1px solid var(--border);
+
+      background: rgba(255,255,255,.8);
+    }
+
+    .footer-inner {
+      max-width: 1450px;
+
+      margin: auto;
+
+      padding: 30px 22px;
+
+      display: flex;
+
+      justify-content: space-between;
+
+      gap: 20px;
+
+      flex-wrap: wrap;
+    }
+
+    .footer-inner p {
+      color: var(--muted);
+
+      font-size: 13px;
+    }
+
+    /* =========================
+       MOBILE
+    ========================= */
+
+    @media(max-width: 1000px) {
+
+      .banners {
+        grid-template-columns:
+          repeat(2,1fr);
+      }
+
+      .content-grid {
+        grid-template-columns:
+          repeat(2,1fr);
+      }
+
+      .hero-card {
+        padding: 40px 28px;
+      }
+    }
+
+    @media(max-width: 650px) {
+
+      .nav {
+        padding: 10px 15px;
+      }
+
+      .brand-text span {
+        display: none;
+      }
+
+      .nav-btn {
+        padding: 8px 11px;
+      }
+
+      .hero {
+        padding: 0 12px;
+      }
+
+      .hero-card {
+        min-height: 430px;
+
+        padding: 32px 23px;
+
+        border-radius: 25px;
+      }
+
+      .hero p {
+        font-size: 16px;
+      }
+
+      main {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .banners,
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-heading {
+        align-items: flex-start;
+
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+
+  <nav class="nav">
+
+    <a href="/" class="brand">
+
+      <div class="logo">
+        EZ
+      </div>
+
+      <div class="brand-text">
+        <strong>EZ MEDIA</strong>
+        <span>منصة الإعلام الرقمي</span>
+      </div>
+
+    </a>
+
+    <div class="nav-actions">
+
+      <button
+        class="nav-btn"
+        onclick="window.location='/admin.html'"
+      >
+        الإدارة
+      </button>
+
+    </div>
+
+  </nav>
+
+</header>
+
+
+<section class="hero">
+
+  <div class="hero-card">
+
+    <div class="hero-content">
+
+      <div class="eyebrow">
+        EZ MEDIA 11.0
+      </div>
+
+      <h1>
+        الإعلام الرقمي
+        <br>
+        بصناعة جديدة
+      </h1>
+
+      <p>
+        منصة رقمية متكاملة للمحتوى والإعلام
+        والفيديو والصوت والبث المباشر والفعاليات
+        والخدمات والهوية الرقمية.
+      </p>
+
+      <div class="hero-buttons">
+
+        <button
+          class="primary"
+          onclick="document
+            .getElementById('sections')
+            .scrollIntoView({behavior:'smooth'})"
+        >
+          استكشف المنصة
+        </button>
+
+        <button
+          class="secondary"
+          onclick="window.location='/admin.html'"
+        >
+          لوحة الإدارة
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<main id="sections">
+
+  <div class="section-heading">
+
+    <div>
+
+      <h2>
+        أقسام EZ MEDIA
+      </h2>
+
+      <p>
+        30 قسمًا رئيسيًا، والفروع تظهر داخل كل قسم
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="banners"
+    class="banners"
+  >
+
+    <div class="loading">
+      جاري تحميل الأقسام...
+    </div>
+
+  </div>
+
+
+  <div class="section-heading">
+
+    <div>
+
+      <h2>
+        أحدث المحتوى
+      </h2>
+
+      <p>
+        المحتوى المنشور من لوحة الإدارة
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="content"
+    class="content-grid"
+  >
+
+    <div class="loading">
+      جاري تحميل المحتوى...
+    </div>
+
+  </div>
+
+</main>
+
+
+<footer>
+
+  <div class="footer-inner">
+
+    <div>
+
+      <strong>
+        EZ MEDIA
+      </strong>
+
+      <p>
+        منصة الإعلام الرقمي وصناعة المحتوى.
+      </p>
+
+    </div>
+
+    <p>
+      © 2026 EZ MEDIA — جميع الحقوق محفوظة
+    </p>
+
+  </div>
+
+</footer>
+
+
+<script>
+
+async function loadSections() {
+
+  const container =
+    document.getElementById('banners');
+
+  try {
+
+    const response =
+      await fetch('/api/sections');
+
+    const data =
+      await response.json();
+
+    if (
+      !data.success ||
+      !Array.isArray(data.sections)
+    ) {
+
+      throw new Error(
+        'Unable to load sections'
+      );
+
+    }
+
+    container.innerHTML =
+      data.sections.map(
+        (section, index) => `
+
+          <a
+            class="banner"
+            href="/section.html?slug=${encodeURIComponent(section.slug)}"
+          >
+
+            <div class="banner-number">
+              ${String(index + 1).padStart(2,'0')}
+            </div>
+
+            <h3>
+              ${escapeHtml(section.name)}
+            </h3>
+
+            <p>
+              ${escapeHtml(
+                section.description ||
+                'استكشف محتوى هذا القسم'
+              )}
+            </p>
+
+            <span class="banner-link">
+              دخول القسم ←
+            </span>
+
+          </a>
+
+        `
+      ).join('');
+
+  } catch(error) {
+
+    console.error(error);
+
+    container.innerHTML = `
+      <div class="loading">
+        تعذر تحميل الأقسام.
+      </div>
+    `;
+  }
+}
+
+
+async function loadContent() {
+
+  const container =
+    document.getElementById('content');
+
+  try {
+
+    const response =
+      await fetch('/api/content');
+
+    const data =
+      await response.json();
+
+    if (
+      !data.success ||
+      !Array.isArray(data.contents)
+    ) {
+
+      throw new Error(
+        'Unable to load content'
+      );
+
+    }
+
+    if (!data.contents.length) {
+
+      container.innerHTML = `
+        <div class="loading">
+          لا يوجد محتوى منشور حتى الآن.
+        </div>
+      `;
+
+      return;
+    }
+
+    container.innerHTML =
+      data.contents
+        .slice(0,12)
+        .map(
+          item => `
+
+            <article class="content-card">
+
+              <div class="content-icon">
+                ${getIcon(item.content_type)}
+              </div>
+
+              <h3>
+                ${escapeHtml(item.title)}
+              </h3>
+
+              <p>
+                ${escapeHtml(
+                  item.excerpt || ''
+                )}
+              </p>
+
+            </article>
+
+          `
+        ).join('');
+
+  } catch(error) {
+
+    console.error(error);
+
+    container.innerHTML = `
+      <div class="loading">
+        تعذر تحميل المحتوى.
+      </div>
+    `;
+  }
+}
+
+
+function getIcon(type) {
+
+  const icons = {
+
+    article: '📰',
+    video: '🎬',
+    audio: '🎧',
+    podcast: '🎙️',
+    live: '🔴',
+    gallery: '📸'
+
+  };
+
+  return icons[type] || '✦';
+}
+
+
+function escapeHtml(value) {
+
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+}
+
+
+loadSections();
+loadContent();
+
+</script>
+
+</body>
+</html>
